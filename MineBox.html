@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>MineBox</title>
+		<h1>BEM-VINDO(A) AO MINEBOX!</h1>
+		<style>
+			body {
+			    margin: 0;
+			    display: flex;
+			    flex-direction: column;
+			    align-items: center;
+			    background-color: darkgray; /* Fundo do corpo da página */
+			}
+			#inner-grid {
+			    display: grid;
+			    grid-template-columns: repeat(25, 10px); /* 25 colunas */
+			    grid-template-rows: repeat(25, 10px); /* 25 linhas */
+			    background-color: #000022; /* Fundo do grid azul */
+			    gap: 0; /* Remover espaços entre os blocos */
+			}
+			.pixel {
+    width: 10px;
+    height: 10px;
+	background-size: cover;  /* Ajusta a imagem ao tamanho do pixel */
+    background-position: center;
+    background-repeat: no-repeat;
+    /* Para alinhar a imagem com o movimento */
+    image-rendering: pixelated;
+			}
+			#elementPicker {
+			    margin: 20px;
+			}
+			#pauseButton {
+			    border: none;
+			    background: none;
+			    margin-top: 10px;
+			    margin-right: 80px;
+			    font-size: 35px;
+			}
+			#clearButton {
+			    border: none;
+			    background: none;
+			    margin-top: 130px;
+			    margin-left: 80px;
+			    position: absolute;
+			    font-size: 35px;
+			}
+		</style>
+	</head>
+	<body>
+		<button id="pauseButton">⏸️</button>
+		<!-- Botão de pausa -->
+		<button id="clearButton">🚮</button>
+		<button id="miniMapButton" style="font-size: 20px">🗺️</button>
+		<h6 id="texttempo">Tempo Normal</h6>
+		<select id="elementPicker">
+			<option value="vazio">⬜</option>
+			<option value="grama">⛳</option>
+			<option value="areia">⛱️</option>
+			<option value="agua">💧</option>
+			<option value="gelo">🧊</option>
+			<option value="lava">🌋</option>
+			<option value="magma">🌋🪨</option>
+			<option value="pedra">🪨</option>
+			<option value="pedregulho">🪨</option>
+			<option value="semente">🌲</option>
+			<option value="madeira">🪵</option>
+			<option value="folha">🌿</option>
+			<option value="plank">🪧🪵</option>
+			<option value="obsidiana">🪨🟣</option>
+			<option value="folha2">🌿🟥</option>
+			<option value="madeira2">🪵🟥</option>
+			<option value="acido">🧪</option>
+			<option value="viidro">🥛</option>
+			<option value="bedrock">⬛</option>
+		</select>
+		<div id="inner-grid"></div>
+
+		<script>
+			        document.addEventListener('DOMContentLoaded', () => {
+			            const innerGrid = document.getElementById('inner-grid');
+			            const elementPicker = document.getElementById('elementPicker');
+			            const clearButton = document.getElementById('clearButton');
+			            const miniMapButton = document.getElementById('miniMapButton');
+			            const pauseButton = document.getElementById('pauseButton');
+			            const texttempo = document.getElementById('texttempo');
+			            const gridSize = 25; // Tamanho da grade
+			            const pixels = [];
+			            const elements = {
+    vazio: { type: 'vazio', backgroundImage: "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAACAIAAAD5Z+niAAAAFElEQVR42mP8z8AARABBAA0zWf3qAAAAAElFTkSuQmCC')" },
+    terra: { type: 'solido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/3/3d/Dirt_%28texture%29_JE2_BE2.png/revision/latest?cb=20200919012354')" },
+    grama: { type: 'solido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/3/3b/Grass_Block_%28side_texture%29_JE2_BE2.png/revision/latest?cb=20200921204925')" },
+    areia: { type: 'solido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/c/c8/Sand_%28texture%29_JE5_BE3.png/revision/latest?cb=20201001140257')"  },
+    agua: { type: 'liquido', backgroundImage: "url('https://raw.githubusercontent.com/daniblockss/Images/main/images%20(4).png')" },
+    lava: { type: 'liquido', backgroundImage: "url('https://raw.githubusercontent.com/daniblockss/Images/main/images.jpeg')" },
+    gelo: { type: 'liquido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/e/e8/Ice_%28texture%29_JE2_BE6.png/revision/latest?cb=20200922000647')" },
+    pedregulho: { type: 'solido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/a/a7/Cobblestone_%28texture%29_JE5_BE3.png/revision/latest?cb=20201001121005')" },
+    pedra: { type: 'solido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/d/dc/Stone_%28texture%29_JE5_BE3.png/revision/latest?cb=20201001141805')" },
+    obsidiana: { type: 'solido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/5/5a/Obsidian_%28texture%29_JE3_BE2.png/revision/latest?cb=20201001140204')" },
+    semente: { type: 'semente', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/3/30/Oak_Sapling_%28texture%29_JE5_BE3.png/revision/latest?cb=20200918200754')" },
+    madeira: { type: 'solido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/5/5f/Oak_Log_%28texture%29_JE4_BE2.png/revision/latest?cb=20201001140144')" },
+    folha: { type: 'folha', backgroundImage: "url('https://raw.githubusercontent.com/daniblockss/Images/main/folha.png')" },
+    folha2: { type: 'solido', backgroundImage: "url('https://raw.githubusercontent.com/daniblockss/Images/main/folha%20vermelha%20.png')" },
+    madeira2: { type: 'solido', backgroundImage: "url('https://raw.githubusercontent.com/daniblockss/Images/main/madeira%20vermelha%20.jpg')" },
+    magma: { type: 'solido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/9/98/Netherrack_%28texture%29_JE4_BE3.png/revision/latest?cb=20201001140136')" },
+    queimada: { color: 'orange', type: 'queimada' },
+    queimada2: { color: 'aqua', type: 'queimada' },
+    queimada3: { color: '#33FF33', type: 'queimada' },
+    diamond_ore: { color: 'transparent', type: 'solido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/c/c0/Diamond_Ore_%28texture%29_JE5_BE5.png/revision/latest?cb=20210312150111')" },
+    gold_ore: { color: 'transparent', type: 'solido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/5/52/Gold_Ore_%28texture%29_JE7_BE4.png/revision/latest?cb=20210415103228')" },
+    iron_ore: { color: 'transparent', type: 'solido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/5/5a/Iron_Ore_%28texture%29_JE6_BE4.png/revision/latest?cb=20210312150124')" },
+    emerald_ore: { color: 'transparent', type: 'solido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/e/ef/Emerald_Ore_%28texture%29_JE4_BE3.png/revision/latest?cb=20210224201100')" },
+    coal_ore: { color: 'transparent', type: 'solido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/a/a2/Coal_Ore_%28texture%29_JE5_BE4.png/revision/latest?cb=20210312150038')" },
+    bedrock: { color: 'transparent', type: 'inquebravel', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_gamepedia/images/0/08/Bedrock_%28texture%29_JE2_BE2.png/revision/latest?cb=20201001115713')" },
+    plank: { color: '#33FF33', type: 'solido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_br_gamepedia/images/a/a2/Oak_planks.png/revision/latest?cb=20210824072838')" },
+    acido: { color: 'transparent', type: 'quimico', backgroundImage: "url('https://dummyimage.com/10x10/88cc88/ffffff.png')" },
+    viidro: { color: 'transparent', type: 'solido', backgroundImage: "url('https://static.wikia.nocookie.net/minecraft_br_gamepedia/images/2/2c/Glass_texture.png/revision/latest?cb=20211119161703')" }
+};
+
+
+			            let isDrawing = false;
+			            let isPaused = false;
+			            let animationId;
+
+			            // Criar grid 25x25
+			            for (let y = 0; y < gridSize; y++) {
+			                for (let x = 0; x < gridSize; x++) {
+			                    const pixel = document.createElement('div');
+			                    pixel.classList.add('pixel');
+			                    pixel.dataset.x = x;
+			                    pixel.dataset.y = y;
+			                    pixel.dataset.type = 'vazio';
+			                    pixel.style.backgroundImage = "url('')";
+			                    pixel.style.backgroundColor = 'transparent';
+
+			                    // Eventos do mouse
+			                    pixel.addEventListener('mousedown', (e) => {
+			                        e.preventDefault(); // Prevenir comportamento padrão do mouse
+			                        isDrawing = true;
+			                        setElement(pixel); // Colocar o elemento no clique
+			                    });
+			                    pixel.addEventListener('mousemove', (e) => {
+			                        if (isDrawing) {
+			                            setElement(pixel); // Permitir desenhar ao arrastar
+			                        }
+			                    });
+			                    pixel.addEventListener('mouseup', () => isDrawing = false); // Interromper desenho
+
+			                    // Eventos de toque
+			                    pixel.addEventListener('touchstart', (e) => {
+			                        e.preventDefault(); // Prevenir comportamento padrão do toque
+			                        isDrawing = true;
+			                        setElement(pixel); // Colocar o elemento no toque
+			                    });
+			                    pixel.addEventListener('touchmove', (e) => {
+			                        e.preventDefault(); // Prevenir comportamento padrão do toque
+			                        const touch = e.touches[0];
+			                        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+			                        if (target && target.classList.contains('pixel')) {
+			                            setElement(target); // Permitir desenhar ao arrastar
+			                        }
+			                    });
+			                    pixel.addEventListener('touchend', () => isDrawing = false); // Interromper desenho
+
+			                    innerGrid.appendChild(pixel);
+			                    pixels.push(pixel);
+			                }
+			            }
+
+			            document.addEventListener('mouseup', () => isDrawing = false); // Parar de desenhar ao soltar o mouse
+			            document.addEventListener('touchend', () => isDrawing = false); // Parar de desenhar ao soltar o toque
+
+			            // Botão de limpar
+			            clearButton.addEventListener('click', () => {
+			                pixels.forEach(pixel => {
+			                    pixel.dataset.type = 'vazio';
+			                    pixel.style.backgroundColor = 'transparent';
+			                    pixel.style.backgroundImage = "url('')";
+			                });
+			            });
+
+			            // Função para gerar mini mapa
+			            miniMapButton.addEventListener('click', generateMiniMap);
+
+// Função para trocar pixels
+			            function swapPixels(pixelA, pixelB) {
+			                const tempType = pixelA.dataset.type;
+			                const tempColor = pixelA.style.backgroundImage;
+
+			                pixelA.dataset.type = pixelB.dataset.type;
+			                pixelA.style.backgroundImage = pixelB.style.backgroundImage;
+			                pixelA.style.backgroundColor = pixelB.style.backgroundColor;
+
+			                pixelB.dataset.type = tempType;
+			                pixelB.style.backgroundImage = tempColor;
+			                pixelB.style.backgroundColor = tempColor;
+			            }
+
+			            // Verifica crescimento de sementes
+			    function checkSeedGrowth(pixel, x, y) {
+			        const surroundingPixels = [
+			            pixels[(y + 1) * gridSize + x],
+			            pixels[(y - 1) * gridSize + x],
+			            pixels[y * gridSize + (x + 1)],
+			            pixels[y * gridSize + (x - 1)]
+			        ];
+
+			        // Se houver água ao redor, cresce árvore
+			        if (surroundingPixels.some(p => p && p.dataset.type === 'agua')) {
+			            setTimeout(() => {
+			                growTree(pixel, x, y);
+			            }, 1500); // Espera 1.5 segundos para crescer
+			        }
+			    }
+
+			    function growTree(pixel, x, y) {
+			                pixel.dataset.type = 'madeira';
+			                pixel.style.backgroundImage = elements['madeira'].backgroundImage;
+
+			                const treeHeight = Math.floor(Math.random() * 3) + 2;
+			                for (let i = 1; i <= treeHeight; i++) {
+			                    const treePixel = pixels[(y - i) * gridSize + x];
+			                    if (treePixel && treePixel.dataset.type === 'vazio') {
+			                        treePixel.dataset.type = 'madeira';
+			                        treePixel.style.backgroundImage = elements['madeira'].backgroundImage;
+
+			                        const leafPositions = [
+			                            [x, y - i - 1],
+			                            [x - 1, y - i],
+			                            [x + 1, y - i],
+			                            [x, y - i + 1]
+			                        ];
+
+			                        leafPositions.forEach(pos => {
+			                            const leafX = pos[0];
+			                            const leafY = pos[1];
+			                            if (leafX >= 0 && leafX < gridSize && leafY >= 0 && leafY < gridSize) {
+			                                const leafPixel = pixels[leafY * gridSize + leafX];
+			                                if (leafPixel.dataset.type === 'vazio') {
+			                                    leafPixel.dataset.type = 'folha';
+			                                    leafPixel.style.backgroundImage = elements['folha'].backgroundImage;
+			                                }
+			                            }
+			                        });
+			                    }
+			                }
+			            }
+			// Verifica crescimento de sementes
+			    function checkSeedGrowth2(pixel, x, y) {
+			        const surroundingPixels = [
+			            pixels[(y + 1) * gridSize + x],
+			            pixels[(y - 1) * gridSize + x],
+			            pixels[y * gridSize + (x + 1)],
+			            pixels[y * gridSize + (x - 1)]
+			        ];
+
+			        // Se houver água ao redor, cresce árvore
+			        if (surroundingPixels.some(p => p && p.dataset.type === 'lava')) {
+			            setTimeout(() => {
+			                growTree2(pixel, x, y);
+			            }, 1500); // Espera 1.5 segundos para crescer
+			        }
+			    }
+
+			    function growTree2(pixel, x, y) {
+			                pixel.dataset.type = 'madeira2';
+			                pixel.style.backgroundImage = elements['madeira2'].backgroundImage;
+
+			                const treeHeight = Math.floor(Math.random() * 3) + 2;
+			                for (let i = 1; i <= treeHeight; i++) {
+			                    const treePixel = pixels[(y - i) * gridSize + x];
+			                    if (treePixel && treePixel.dataset.type === 'vazio') {
+			                        treePixel.dataset.type = 'madeira2';
+			                        treePixel.style.backgroundImage = elements['madeira2'].backgroundImage;
+
+			                        const leafPositions = [
+			                            [x, y - i - 1],
+			                            [x - 1, y - i],
+			                            [x + 1, y - i],
+			                            [x, y - i + 1]
+			                        ];
+
+			                        leafPositions.forEach(pos => {
+			                            const leafX = pos[0];
+			                            const leafY = pos[1];
+			                            if (leafX >= 0 && leafX < gridSize && leafY >= 0 && leafY < gridSize) {
+			                                const leafPixel = pixels[leafY * gridSize + leafX];
+			                                if (leafPixel.dataset.type === 'vazio') {
+			                                    leafPixel.dataset.type = 'folha2';
+			                                    leafPixel.style.backgroundImage = elements['folha2'].backgroundImage;
+			                                }
+			                            }
+			                        });
+			                    }
+			                }
+			           }
+
+			           // Verifica se madeira ou folhas devem queimar
+			function checkBurn(pixel) {
+			    const x = parseInt(pixel.dataset.x);
+			    const y = parseInt(pixel.dataset.y);
+
+			    // Verifica se os índices não ultrapassam os limites do grid
+			    const getPixel = (x, y) => (y >= 0 && y < gridSize && x >= 0 && x < gridSize) ? pixels[y * gridSize + x] : null;
+
+			    const surroundingPixels = [
+			        getPixel(x, y + 1),
+			        getPixel(x, y - 1),
+			        getPixel(x + 1, y),
+			        getPixel(x - 1, y)
+			    ];
+
+			    // Se houver lava ao redor, queima madeira ou folha
+			    if (surroundingPixels.some(p => p && p.dataset.type === 'lava')) {
+			        setTimeout(() => {
+			            pixel.dataset.type = 'queimada';
+			            pixel.style.backgroundColor = elements['queimada'].color;
+			            pixel.style.backgroundImage = "url('')";
+			            // Queima a folha/madeira rapidamente e apaga após 200ms
+			            setTimeout(() => {
+			                pixel.dataset.type = 'vazio';
+			                pixel.style.backgroundColor = '';
+							pixel.style.backgroundImage = "url('')";
+			            }, 200);
+			        }, 100); // Delay de 100ms para iniciar a queima
+			    }
+			}
+			function checkBurn2(pixel) {
+			    const x = parseInt(pixel.dataset.x);
+			    const y = parseInt(pixel.dataset.y);
+
+			    // Verifica se os índices não ultrapassam os limites do grid
+			    const getPixel = (x, y) => (y >= 0 && y < gridSize && x >= 0 && x < gridSize) ? pixels[y * gridSize + x] : null;
+
+			    const surroundingPixels = [
+			        getPixel(x, y + 1),
+			        getPixel(x, y - 1),
+			        getPixel(x + 1, y),
+			        getPixel(x - 1, y)
+			    ];
+
+			    // Se houver lava ao redor, queima madeira ou folha
+			    if (surroundingPixels.some(p => p && p.dataset.type === 'agua')) {
+			        setTimeout(() => {
+			            pixel.dataset.type = 'queimada2';
+			            pixel.style.backgroundColor = elements['queimada2'].color;
+			            pixel.style.backgroundImage = "url('')";
+			            // Queima a folha/madeira rapidamente e apaga após 200ms
+			            setTimeout(() => {
+			                pixel.dataset.type = 'vazio';
+			                pixel.style.backgroundColor = '';
+							pixel.style.backgroundImage = "url('')";
+			            }, 200);
+			        }, 100); // Delay de 100ms para iniciar a queima
+			    }
+			}
+function ice(pixel) {
+    const x = parseInt(pixel.dataset.x);
+    const y = parseInt(pixel.dataset.y);
+
+    // Verifica se os índices não ultrapassam os limites do grid
+    const getPixel = (x, y) => (y >= 0 && y < gridSize && x >= 0 && x < gridSize) ? pixels[y * gridSize + x] : null;
+
+    // Impede o processo se o pixel já foi transformado em queimada ou derrevid
+    if (pixel.dataset.type === 'vazio' || pixel.dataset.type === 'agua') {
+        return;
+    }
+
+    const surroundingPixels = [
+        getPixel(x, y + 1),
+        getPixel(x, y - 1),
+        getPixel(x + 1, y),
+        getPixel(x - 1, y)
+    ];
+
+    // Se houver lava ao redor, queima madeira ou folha apenas uma vez
+    if (surroundingPixels.some(p => p && p.dataset.type === 'vazio')) {
+        // Verifica se já existe um processo de queima em andamento
+        if (!pixel.dataset.burning) {
+            pixel.dataset.burning = true; // Marca que está queimando para evitar repetição
+            setTimeout(() => {
+                pixel.dataset.type = 'vazio';
+                pixel.style.backgroundColor = elements['vazio'].color;
+				pixel.style.backgroundImage = "url('')";
+                // Queima a folha/madeira rapidamente e apaga após 200ms
+                setTimeout(() => {
+                    pixel.dataset.type = 'agua';
+                    pixel.style.backgroundImage = elements['agua'].backgroundImage;
+                }, 0);
+            }, 6500); // Delay de 6000ms para iniciar a queima
+        }
+    }
+}
+function magma(pixel) {
+    const x = parseInt(pixel.dataset.x);
+    const y = parseInt(pixel.dataset.y);
+
+    // Verifica se os índices não ultrapassam os limites do grid
+    const getPixel = (x, y) => (y >= 0 && y < gridSize && x >= 0 && x < gridSize) ? pixels[y * gridSize + x] : null;
+
+    const surroundingPixels = [
+        getPixel(x, y + 1),
+        getPixel(x, y - 1),
+        getPixel(x + 1, y),
+        getPixel(x - 1, y)
+    ];
+
+    // Se houver um pixel vazio ao redor, espera 1 segundo e transforma o bloco em magma
+    if (surroundingPixels.some(p => p && p.dataset.type === 'vazio')) {
+        setTimeout(() => {
+            pixel.dataset.type = 'magma';
+            pixel.style.backgroundImage = elements['magma'].backgroundImage;
+        }, 1000); // Delay de 1 segundo antes de virar magma
+    }
+}
+
+			function acidado(pixel) {
+			    const x = parseInt(pixel.dataset.x);
+			    const y = parseInt(pixel.dataset.y);
+
+			    // Verifica se os índices não ultrapassam os limites do grid
+			    const getPixel = (x, y) => (y >= 0 && y < gridSize && x >= 0 && x < gridSize) ? pixels[y * gridSize + x] : null;
+
+			    const surroundingPixels = [
+			        getPixel(x, y + 1),
+			        getPixel(x, y - 1),
+			        getPixel(x + 1, y),
+			        getPixel(x - 1, y)
+			    ];
+
+			    // Se houver lava ao redor, queima madeira ou folha
+			    if (surroundingPixels.some(p => p && p.dataset.type === 'acido')) {
+			        setTimeout(() => {
+			            pixel.dataset.type = 'queimada3';
+			            pixel.style.backgroundColor = elements['queimada3'].color;
+			            pixel.style.backgroundImage = "url('')";
+			            // Queima a folha/madeira rapidamente e apaga após 200ms
+			            setTimeout(() => {
+			                pixel.dataset.type = 'vazio';
+			                pixel.style.backgroundColor = elements['vazio'].color;
+			            }, 200);
+			        }, 100); // Delay de 100ms para iniciar a queima
+			    }
+			}
+			function acidd(pixel) {
+			    const x = parseInt(pixel.dataset.x);
+			    const y = parseInt(pixel.dataset.y);
+
+			    // Verifica se os índices não ultrapassam os limites do grid
+			    const getPixel = (x, y) => (y >= 0 && y < gridSize && x >= 0 && x < gridSize) ? pixels[y * gridSize + x] : null;
+
+			    const surroundingPixels = [
+			        getPixel(x, y + 1),
+			        getPixel(x, y - 1),
+			        getPixel(x + 1, y),
+			        getPixel(x - 1, y)
+			    ];
+
+			    // Se houver lava ao redor, queima madeira ou folha
+			    if (surroundingPixels.some(p => p && p.dataset.type === 'lava')) {
+			        setTimeout(() => {
+			            pixel.dataset.type = 'queimada3';
+			            pixel.style.backgroundColor = elements['queimada3'].color;
+			            pixel.style.backgroundImage = "url('')";
+			            // Queima a folha/madeira rapidamente e apaga após 200ms
+			            setTimeout(() => {
+			                pixel.dataset.type = 'vazio';
+			                pixel.style.backgroundColor = elements['vazio'].color;
+			            }, 200);
+			        }, 100); // Delay de 100ms para iniciar a queima
+			    }
+			}
+
+function saveGrid() {
+    const gridData = [];
+    for (let i = 0; i < pixels.length; i++) {
+        gridData.push(pixels[i].dataset.type || ''); // Salva o tipo do pixel
+    }
+    localStorage.setItem('gridData', JSON.stringify(gridData)); // Salva a grid como JSON
+    alert('Terreno salvo com sucesso!');
+}
+
+function loadGrid() {
+    const gridData = JSON.parse(localStorage.getItem('gridData'));
+    if (gridData) {
+        for (let i = 0; i < pixels.length; i++) {
+            const pixelType = gridData[i];
+            pixels[i].dataset.type = pixelType; // Define o tipo do pixel
+            if (pixelType) {
+                pixels[i].style.backgroundImage = elements[pixelType].backgroundImage; // Restaura a imagem de fundo
+            } else {
+                pixels[i].style.backgroundImage = ''; // Limpa a imagem de fundo se não houver tipo
+            }
+        }
+        alert('Terreno carregado com sucesso!');
+    } else {
+        alert('Nenhum terreno salvo encontrado.');
+    }
+}
+
+// Criar botões para salvar e carregar a grid
+const saveButton = document.createElement('button');
+saveButton.textContent = 'Salvar Terreno';
+saveButton.onclick = saveGrid;
+document.body.appendChild(saveButton); // Adiciona o botão ao body
+
+const loadButton = document.createElement('button');
+loadButton.textContent = 'Carregar Terreno';
+loadButton.onclick = loadGrid;
+document.body.appendChild(loadButton); // Adiciona o botão ao body
+
+			            function generateMiniMap() {
+    clearButton.click(); // Limpa o grid antes de gerar o mini mapa
+
+    let currentHeight = Math.floor(Math.random() * (8 - 2 + 1)) + 2; // Altura inicial da montanha
+    let ascending = true; // Controla se a montanha está subindo ou descendo
+    let flatTop = false; // Controla quando criar a linha reta no topo
+    let flatLength = 0; // Controla o comprimento da parte reta
+    const flatWidth = 3; // Largura da parte plana no topo
+
+    let totalTrees = 0; // Contador para o total de árvores geradas
+    const maxTotalTrees = 6; // Limite total de árvores no mapa
+
+    // Contadores para os minérios
+    const maxTotalOres = Math.floor(Math.random() * 6); // Limite total de minérios por tipo
+    let totalDiamonds = 0;
+    let totalEmeralds = 0;
+    let totalGolds = 0;
+    let totalIrons = 0;
+    let totalCoals = 0;
+
+    // Conjunto para armazenar as posições dos minérios
+    const orePositions = new Set();
+
+    // Função para verificar se a posição está livre para colocar um minério
+    function isPositionAvailable(x, y) {
+        const adjacentPositions = [
+            `${x},${y}`, // Posição atual
+            `${x-1},${y}`, // Esquerda
+            `${x+1},${y}`, // Direita
+            `${x},${y-1}`, // Cima
+            `${x},${y+1}`, // Abaixo
+        ];
+        return !adjacentPositions.some(pos => orePositions.has(pos));
+    }
+
+    // Função para determinar minério com base em chance
+    function getRandomOre() {
+        const chance = Math.random();
+        if (chance < 0.02 && totalDiamonds < maxTotalOres) { // 2% de chance para diamante
+            totalDiamonds++;
+            return 'diamond_ore';
+        } else if (chance < 0.04 && totalEmeralds < maxTotalOres) { // 2% adicional para esmeralda
+            totalEmeralds++;
+            return 'emerald_ore';
+        } else if (chance < 0.09 && totalGolds < maxTotalOres) { // 5% para ouro
+            totalGolds++;
+            return 'gold_ore';
+        } else if (chance < 0.19 && totalIrons < maxTotalOres) { // 10% para ferro
+            totalIrons++;
+            return 'iron_ore';
+        } else if (totalCoals < maxTotalOres) { // Carvão
+            totalCoals++;
+            return 'coal_ore';
+        }
+        return null; // Nenhum minério
+    }
+
+    // Criar terreno com montanhas no formato de escadinha
+    for (let x = 0; x < gridSize; x++) {
+        // Criar base de pedra
+        for (let y = gridSize - 1; y >= gridSize - 5; y--) {
+            const pixel = pixels[y * gridSize + x];
+            pixel.dataset.type = 'pedra';
+            pixel.style.backgroundImage = elements['pedra'].backgroundImage;
+
+            // Tentar adicionar minério se o pixel for pedra na camada base
+            const oreType = getRandomOre();
+            if (oreType && isPositionAvailable(x, y)) {
+                pixel.dataset.type = oreType;
+                pixel.style.backgroundImage = elements[oreType].backgroundImage;
+                orePositions.add(`${x},${y}`); // Adiciona a posição ao conjunto
+            }
+        }
+
+        // Criar montanha de terra com pedra no interior
+        for (let y = gridSize - 6; y >= gridSize - (6 + currentHeight); y--) {
+            const pixel = pixels[y * gridSize + x];
+
+            // Se for nas camadas mais baixas da montanha, adiciona pedra
+            if (y >= gridSize - (6 + currentHeight - 3)) {
+                pixel.dataset.type = 'pedra';
+                pixel.style.backgroundImage = elements['pedra'].backgroundImage;
+
+                // Tentar adicionar minério se o pixel for pedra
+                const oreType = getRandomOre();
+                if (oreType && isPositionAvailable(x, y)) {
+                    pixel.dataset.type = oreType;
+                    pixel.style.backgroundImage = elements[oreType].backgroundImage;
+                    orePositions.add(`${x},${y}`); // Adiciona a posição ao conjunto
+                }
+            } else {
+                // Acima da camada de pedra, adiciona terra
+                pixel.dataset.type = 'terra';
+                pixel.style.backgroundImage = elements['terra'].backgroundImage;
+            }
+        }
+
+        // Colocar grama no topo da montanha
+        if (currentHeight > 0) {
+            for (let w = -Math.floor(flatWidth / 2); w <= Math.floor(flatWidth / 2); w++) {
+                const topPixel = pixels[(gridSize - (6 + currentHeight)) * gridSize + (x + w)];
+                if (topPixel) {
+                    topPixel.dataset.type = 'grama';
+                    topPixel.style.backgroundImage = elements['grama'].backgroundImage;
+                }
+            }
+        }
+
+        // Lógica para criar uma linha reta no topo (flat top)
+        if (flatTop) {
+            flatLength++;
+            if (flatLength >= 5) {
+                flatTop = false; // Depois de 5 blocos retos, volta a subir ou descer
+                ascending = Math.random() < 0.5; // Decide aleatoriamente se vai subir ou descer
+            }
+        } else {
+            // Lógica para subir ou descer a montanha em escadinha
+            if (ascending) {
+                currentHeight++; // Aumenta a altura da montanha
+                if (Math.random() < 0.3) flatTop = true; // Chance de criar uma linha reta
+                if (currentHeight >= 10) ascending = false; // Se atingir o pico, começa a descer
+            } else {
+                currentHeight--; // Diminui a altura da montanha
+                if (Math.random() < 0.3) flatTop = true; // Chance de criar uma linha reta
+                if (currentHeight <= 3) ascending = true; // Quando atinge a base, volta a subir
+            }
+        }
+
+        // Adicionar árvores em locais aleatórios, mas não exceder o limite total
+        if (totalTrees < maxTotalTrees) {
+            // Tenta adicionar uma árvore
+            const treeAdded = addTreeIfPossible(x, gridSize - (6 + currentHeight), totalTrees);
+            totalTrees += treeAdded; // Atualiza o contador total de árvores
+        }
+        for (let x = 0; x < gridSize; x++) {
+        const bedrockPixel = pixels[(gridSize - 1) * gridSize + x];
+        bedrockPixel.dataset.type = 'bedrock';
+        bedrockPixel.style.backgroundImage = elements['bedrock'].backgroundImage; // Adicione a imagem da bedrock
+        }
+    }
+}
+			function addTreeIfPossible(x, y, totalTrees) {
+			    // Verifica se a posição está livre e se não há árvores adjacentes
+			    if (pixels[y * gridSize + x].dataset.type === 'vazio' && totalTrees < 6) {
+			        // Verifica se as posições adjacentes não têm árvores
+			        const adjacentPositions = [
+			            [x - 1, y],
+			            [x + 1, y],
+			            [x, y - 1],
+			            [x, y + 1]
+			        ];
+
+			        const hasAdjacentTree = adjacentPositions.some(pos => {
+			            const adjX = pos[0];
+			            const adjY = pos[1];
+			            return (adjX >= 0 && adjX < gridSize && adjY >= 0 && adjY < gridSize) &&
+			                   (pixels[adjY * gridSize + adjX].dataset.type === 'madeira' ||
+			                    pixels[adjY * gridSize + adjX].dataset.type === 'folha');
+			        });
+
+			        if (!hasAdjacentTree) {
+			            // Adiciona a árvore
+			            spawnTree(x, y);
+			            return 1; // Retorna que uma árvore foi adicionada
+			        }
+			    }
+			    return 0; // Nenhuma árvore foi adicionada
+			}
+
+			function spawnTree(x, y) {
+			    const pixel = pixels[y * gridSize + x];
+			    if (pixel && pixel.dataset.type === 'vazio') { // Verifica se o pixel está vazio
+			        pixel.dataset.type = 'madeira';
+			        pixel.style.backgroundImage = elements['madeira'].backgroundImage;
+
+			        const treeHeight = Math.floor(Math.random() * 3) + 2; // Altura da árvore entre 2 e 4
+			        for (let i = 1; i <= treeHeight; i++) {
+			            const treePixel = pixels[(y - i) * gridSize + x];
+			            if (treePixel && treePixel.dataset.type === 'vazio') {
+			                treePixel.dataset.type = 'madeira';
+			                treePixel.style.backgroundImage = elements['madeira'].backgroundImage;
+
+			                const leafPositions = [
+			                    [x, y - i - 1],
+			                    [x - 1, y - i],
+			                    [x + 1, y - i],
+			                    [x, y - i + 1]
+			                ];
+
+			                leafPositions.forEach(pos => {
+			                    const leafX = pos[0];
+			                    const leafY = pos[1];
+			                    if (leafX >= 0 && leafX < gridSize && leafY >= 0 && leafY < gridSize) {
+			                        const leafPixel = pixels[leafY * gridSize + leafX];
+			                        if (leafPixel.dataset.type === 'vazio') {
+			                            leafPixel.dataset.type = 'folha';
+			                            leafPixel.style.backgroundImage = elements['folha'].backgroundImage;
+			                        }
+			                    }
+			                });
+			            }
+			        }
+			    }
+			}
+
+			            // Função para definir o elemento escolhido no pixel
+			            function setElement(pixel) {
+			                const selectedElement = elementPicker.value; // Elemento escolhido no picker
+			                pixel.dataset.type = selectedElement;
+			                pixel.style.backgroundImage = elements[selectedElement].backgroundImage;
+			            }
+			            // Função de atualização contínua
+			function update() {
+    for (let i = 0; i < pixels.length; i++) {
+        const pixel = pixels[i];
+        const type = pixel.dataset.type;
+
+        // Verifica se o bloco tem gravidade
+        const hasGravity = ['terra', 'areia', 'grama', 'semente'].includes(type);
+
+        // Processa a física do pixel com base em seu tipo
+        if (hasGravity) {
+            simulateGravity(pixel);
+        } else if (['agua', 'lava', 'acido', 'derrevid'].includes(type)) {
+            simulateLiquid(pixel);
+        } else if (['madeira2', 'folha2'].includes(type)) {
+            checkBurn2(pixel); // Verifica se deve queimar
+        } else if (['madeira', 'folha', 'plank'].includes(type)) {
+            checkBurn(pixel); // Verifica se deve queimar
+        } else if (type === 'gelo') {
+            ice(pixel); // Verifica se deve queimar
+        } else if (type === 'lava') {
+            magma(pixel); // Verifica se deve queimar
+        }
+
+        // Verifica todos os blocos que podem queimar
+        if (['madeira', 'folha', 'madeira2', 'folha2', 'terra', 'grama', 'pedra', 'obsidiana', 'semente', 'pedregulho'].includes(type)) {
+            acidado(pixel);
+        }
+    }
+
+    // Requisição de animação para o próximo quadro
+    animationId = requestAnimationFrame(update);
+}
+
+			update(); // Iniciar atualização
+
+			// Adicionar funcionalidade de pausa
+			pauseButton.addEventListener('click', () => {
+			    isPaused = !isPaused;
+			    if (isPaused) {
+			        cancelAnimationFrame(animationId);
+			        pauseButton.textContent = "▶️";
+			        texttempo.textContent = "Tempo Parado";
+			    } else {
+			        animationId = requestAnimationFrame(update);
+			        pauseButton.textContent = "⏸️";
+			        texttempo.textContent = "Tempo Normal";
+			    }
+			});
+
+			// Função para verificar se as coordenadas estão dentro do grid (dependendo de como a sua grid é feita)
+			function dentroDoGrid(x, y) {
+			    return x >= 0 && x < grid.length && y >= 0 && y < grid[0].length;
+			}            // Função de simulação de gravidade
+            function simulateGravity(pixel) {
+    const x = parseInt(pixel.dataset.x);
+    const y = parseInt(pixel.dataset.y);
+
+    setTimeout(() => {
+        if (y < gridSize - 1) {
+            const belowPixel = pixels[(y + 1) * gridSize + x];  // Pixel abaixo
+
+            // Verifica se há qualquer bloco acima da grama (exceto vazio) e transforma a grama em terra
+            const abovePixel = y > 0 ? pixels[(y - 1) * gridSize + x] : null;
+            if (abovePixel && pixel.dataset.type === 'grama' && abovePixel.dataset.type !== 'vazio') {
+                pixel.dataset.type = 'terra';
+                pixel.style.backgroundImage = elements['terra'].backgroundImage;
+            }
+
+            // Verifica se há ar (vazio) acima da terra e transforma em grama
+            if (abovePixel && pixel.dataset.type === 'terra' && abovePixel.dataset.type === 'vazio') {
+                pixel.dataset.type = 'grama';
+                pixel.style.backgroundImage = elements['grama'].backgroundImage;
+            }
+
+            // Verifica se a grama está em cima de outra grama e transforma a de baixo em terra
+            if (belowPixel && belowPixel.dataset.type === 'grama' && pixel.dataset.type === 'grama') {
+                belowPixel.dataset.type = 'terra';
+                belowPixel.style.backgroundImage = elements['terra'].backgroundImage;
+            }
+
+            // Lógica de gravidade para blocos que podem cair (inclui sementes)
+            if (belowPixel.dataset.type === 'vazio' || elements[belowPixel.dataset.type].type === 'liquido') {
+                swapPixelsWithBackground(pixel, belowPixel); // Usando função que troca os pixels e o background-image
+            }
+
+            // Verifica se há uma semente abaixo
+            if (pixel.dataset.type === 'semente' && belowPixel.dataset.type === 'semente') {
+                // Se houver uma semente abaixo, a semente de cima some
+                pixel.dataset.type = 'vazio';
+                pixel.style.backgroundImage = elements['vazio'].backgroundImage;
+            }
+        }
+    }, 0); // Delay de 100ms para simulação de gravidade
+}
+
+// Função para trocar os pixels e garantir que o background-image siga o pixel
+function swapPixelsWithBackground(pixel1, pixel2) {
+    // Troca os tipos
+    const tempType = pixel1.dataset.type;
+    pixel1.dataset.type = pixel2.dataset.type;
+    pixel2.dataset.type = tempType;
+
+    // Troca os background-images
+    const tempBackground = pixel1.style.backgroundImage;
+    pixel1.style.backgroundImage = pixel2.style.backgroundImage;
+    pixel2.style.backgroundImage = tempBackground;
+}
+function simulateLiquid(pixel) {
+    const x = parseInt(pixel.dataset.x);
+    const y = parseInt(pixel.dataset.y);
+
+    setTimeout(() => {
+        if (y < gridSize - 1) {
+            const belowPixel = pixels[(y + 1) * gridSize + x]; // Pixel abaixo
+
+            // Interações entre lava e água (movimento para baixo)
+            if ((pixel.dataset.type === 'lava' || pixel.dataset.type === 'derrevid') && belowPixel.dataset.type === 'agua') {
+                belowPixel.dataset.type = 'pedregulho';
+                belowPixel.style.backgroundImage = elements['pedregulho'].backgroundImage; // Define a imagem da pedra
+
+                // Se o tipo do pixel for lava, ele vira vazio
+                if (pixel.dataset.type === 'lava') {
+                    pixel.dataset.type = 'vazio';
+                    pixel.style.backgroundImage = elements['vazio'].backgroundImage; // Define a imagem do vazio
+                } 
+                if (pixel.dataset.type === 'derrevid') {
+                    pixel.dataset.type = 'viidro';
+                    pixel.style.backgroundImage = elements['viidro'].backgroundImage; // Define a imagem do vidro
+                }
+
+            } else if (pixel.dataset.type === 'agua' && belowPixel.dataset.type === 'lava') {
+                pixel.dataset.type = 'vazio';
+                pixel.style.backgroundImage = elements['vazio'].backgroundImage; // Define a imagem do vazio
+                belowPixel.dataset.type = 'obsidiana';
+                belowPixel.style.backgroundImage = elements['obsidiana'].backgroundImage; // Define a imagem da obsidiana
+
+            } else {
+                // Movimento de líquidos para baixo ou para os lados
+                if (belowPixel.dataset.type === 'vazio') {
+                    swapPixelsWithBackground(pixel, belowPixel); // Usando a função de troca correta
+                } else {
+                    const randomDirection = Math.random() < 0.5 ? -1 : 1;
+                    const newX = x + randomDirection;
+                    if (newX >= 0 && newX < gridSize) {
+                        const sidePixel = pixels[y * gridSize + newX];
+                        if (sidePixel.dataset.type === 'vazio') {
+                            swapPixelsWithBackground(pixel, sidePixel); // Usando a função de troca correta
+                        }
+                    }
+                }
+            }
+        }
+
+        // Verifica se a semente deve crescer
+        if (pixel.dataset.type === 'semente') {
+            checkSeedGrowth(pixel, x, y);
+            checkSeedGrowth2(pixel, x, y);
+        }
+    }, 0); // Delay de 100ms para simulação de líquidos
+}
+
+});
+		</script>
+	</body>
+</html>
